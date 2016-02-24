@@ -33,11 +33,15 @@ struct stateMachine {
 //
 // configuration with defaults
 //
+#define CHILL 0
+#define HEAT 1
 struct config {
+  int mode         = CHILL;
   float setpoint   = 64.0;
   float hysteresis = 0.1;
   long pumpRun     = 5000;
   long pumpDelay   = 60000;
+  char tag[16]     = "unset";
   float version    = VERSION;
 } myConfig;
 
@@ -142,6 +146,14 @@ void runCommand(char * cmd, char * param) {
     Serial.println(myConfig.version);
   } else if (strcmp(cmd,"getType") == 0) {
     Serial.println(TYPE);
+  } else if (strcmp(cmd,"getTag") == 0) {
+    Serial.println(myConfig.tag);
+  } else if (strcmp(cmd, "getMode") == 0) {
+    if (myConfig.mode == CHILL) {
+      Serial.println("CHILL");
+    } else {
+      Serial.println("HEAT");
+    }
   } else if (strcmp(cmd,"getSetpoint") == 0) {
     Serial.println(myConfig.setpoint);
   } else if (strcmp(cmd,"getHysteresis") == 0) {
@@ -154,9 +166,13 @@ void runCommand(char * cmd, char * param) {
     Serial.println(myFermenter.temperature);
   } else if (strcmp(cmd,"getFailsafe") == 0) {
     Serial.println(myFermenter.failsafe);
-  } else if (strcmp(cmd,"getFermenter") == 0) {
+  } else if (strcmp(cmd,"getDeviceAddress") == 0) {
     printAddress(myFermenter.deviceAddress);
     Serial.println();
+  } else if (strcmp(cmd,"setTag") == 0) {
+    setTag(param);
+  } else if (strcmp(cmd,"setMode") == 0) {
+    setMode(param);
   } else if (strcmp(cmd,"setSetpoint") == 0) {
     setSetpoint(atof(param));
   } else if (strcmp(cmd,"setHysteresis") == 0) {
@@ -175,6 +191,22 @@ void printAddress(DeviceAddress deviceAddress) {
     if (deviceAddress[i] < 16) Serial.print("0");
     Serial.print(deviceAddress[i], HEX);
   }
+}
+
+void setTag (char * tag) {
+  if (strlen(tag) < 16) {
+    strcpy(myConfig.tag, tag);
+    saveConfig();
+  }
+}
+
+void setMode (char * mode) {
+  if (strcmp(mode,"CHILL") == 0) {
+    myConfig.mode = CHILL;
+  } else if (strcmp(mode,"HEAT") == 0) {
+    myConfig.mode = HEAT;
+  }
+  saveConfig();
 }
 
 void setSetpoint(float setpoint) {
@@ -246,19 +278,23 @@ void getTemperatures() {
 }
 
 void loopPump() {
+  //Serial.println((myConfig.mode == HEAT  && ((myFermenter.temperature - myConfig.setpoint) <= (myConfig.hysteresis*2))));
   if (myStateMachine.pumpDelay == 0) {
-    if ((myFermenter.temperature - myConfig.setpoint) >= (myConfig.hysteresis*2)) {
+    if ((myConfig.mode == CHILL && ((myFermenter.temperature - myConfig.setpoint) >= (myConfig.hysteresis*2))) || 
+        (myConfig.mode == HEAT  && ((myFermenter.temperature - myConfig.setpoint) <= (myConfig.hysteresis*2)))) {
         myFermenter.failsafe = true;
         onPump();
     }
     if (myFermenter.failsafe) {
-      if ((myFermenter.temperature - myConfig.setpoint) <= 0.0) {
+      if ((myConfig.mode == CHILL && (myFermenter.temperature - myConfig.setpoint) <= 0.0) ||
+          (myConfig.mode == HEAT  && (myFermenter.temperature - myConfig.setpoint) >= 0.0)) {
         myFermenter.failsafe = false;
         offPump();
       }
     } else {
       if (myStateMachine.pump == 0) {
-        if ((myFermenter.temperature - myConfig.setpoint) >= myConfig.hysteresis) {
+        if ((myConfig.mode == CHILL && ((myFermenter.temperature - myConfig.setpoint) >= myConfig.hysteresis)) ||
+            (myConfig.mode == HEAT  && ((myFermenter.temperature - myConfig.setpoint) <= myConfig.hysteresis))) {
           onPump();
         }
       } else {
