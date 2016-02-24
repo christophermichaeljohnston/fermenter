@@ -1,4 +1,4 @@
-#define VERSION 0.1
+define VERSION 0.1
 #define TYPE "FERMENTER"
 
 #include <string.h>
@@ -36,7 +36,7 @@ struct stateMachine {
 #define CHILL 0
 #define HEAT 1
 struct config {
-  char id[16]      = "";
+  char sn[16]      = "";
   int mode         = CHILL;
   float setpoint   = 64.0;
   float hysteresis = 0.1;
@@ -89,7 +89,7 @@ void setupConfig() {
   } else {
     for (int i=0 ; i<16 ; i++) {
       randomSeed(analogRead(0));
-      myConfig.id[i] = 'a'+random(26);
+      myConfig.sn[i] = 'a'+random(26);
     }
     saveConfig();
   }
@@ -150,8 +150,8 @@ void runCommand(char * cmd, char * param) {
     Serial.println(myConfig.version);
   } else if (strcmp(cmd,"getType") == 0) {
     Serial.println(TYPE);
-  } else if (strcmp(cmd,"getID") == 0) {
-    Serial.println(myConfig.id);
+  } else if (strcmp(cmd,"getSN") == 0) {
+    Serial.println(myConfig.sn);
   } else if (strcmp(cmd, "getMode") == 0) {
     if (myConfig.mode == CHILL) {
       Serial.println("CHILL");
@@ -173,8 +173,8 @@ void runCommand(char * cmd, char * param) {
   } else if (strcmp(cmd,"getDeviceAddress") == 0) {
     printAddress(myFermenter.deviceAddress);
     Serial.println();
-  } else if (strcmp(cmd,"setID") == 0) {
-    setID(param);
+  } else if (strcmp(cmd,"setSN") == 0) {
+    setSN(param);
   } else if (strcmp(cmd,"setMode") == 0) {
     setMode(param);
   } else if (strcmp(cmd,"setSetpoint") == 0) {
@@ -197,9 +197,9 @@ void printAddress(DeviceAddress deviceAddress) {
   }
 }
 
-void setID (char * id) {
-  if (strlen(id) < 16) {
-    strcpy(myConfig.id, id);
+void setSN (char * sn) {
+  if (strlen(sn) < 16) {
+    strcpy(myConfig.sn, sn);
     saveConfig();
   }
 }
