@@ -36,12 +36,12 @@ struct stateMachine {
 #define CHILL 0
 #define HEAT 1
 struct config {
+  char id[16]      = "";
   int mode         = CHILL;
   float setpoint   = 64.0;
   float hysteresis = 0.1;
   long pumpRun     = 5000;
   long pumpDelay   = 60000;
-  char tag[16]     = "unset";
   float version    = VERSION;
 } myConfig;
 
@@ -87,6 +87,10 @@ void setupConfig() {
   if (mem.version == VERSION) {
     myConfig = mem;
   } else {
+    for (int i=0 ; i<16 ; i++) {
+      randomSeed(analogRead(0));
+      myConfig.id[i] = 'a'+random(26);
+    }
     saveConfig();
   }
 }
@@ -146,8 +150,8 @@ void runCommand(char * cmd, char * param) {
     Serial.println(myConfig.version);
   } else if (strcmp(cmd,"getType") == 0) {
     Serial.println(TYPE);
-  } else if (strcmp(cmd,"getTag") == 0) {
-    Serial.println(myConfig.tag);
+  } else if (strcmp(cmd,"getID") == 0) {
+    Serial.println(myConfig.id);
   } else if (strcmp(cmd, "getMode") == 0) {
     if (myConfig.mode == CHILL) {
       Serial.println("CHILL");
@@ -169,8 +173,8 @@ void runCommand(char * cmd, char * param) {
   } else if (strcmp(cmd,"getDeviceAddress") == 0) {
     printAddress(myFermenter.deviceAddress);
     Serial.println();
-  } else if (strcmp(cmd,"setTag") == 0) {
-    setTag(param);
+  } else if (strcmp(cmd,"setID") == 0) {
+    setID(param);
   } else if (strcmp(cmd,"setMode") == 0) {
     setMode(param);
   } else if (strcmp(cmd,"setSetpoint") == 0) {
@@ -193,9 +197,9 @@ void printAddress(DeviceAddress deviceAddress) {
   }
 }
 
-void setTag (char * tag) {
-  if (strlen(tag) < 16) {
-    strcpy(myConfig.tag, tag);
+void setID (char * id) {
+  if (strlen(id) < 16) {
+    strcpy(myConfig.id, id);
     saveConfig();
   }
 }
