@@ -1,4 +1,4 @@
-define VERSION 0.1
+#define VERSION 0.1
 #define TYPE "FERMENTER"
 
 #include <string.h>
