@@ -69,8 +69,8 @@ struct buffer {
 ///////////////////////////////////
 
 void setup() {
-  setupConfig();
   setupSerial();
+  setupConfig();
   setupSensors();
   setupPump();
   Serial.println("Ready...");
@@ -87,8 +87,8 @@ void setupConfig() {
   if (mem.version == VERSION) {
     myConfig = mem;
   } else {
+    randomSeed(analogRead(0));
     for (int i=0 ; i<16 ; i++) {
-      randomSeed(analogRead(0));
       myConfig.sn[i] = 'a'+random(26);
     }
     saveConfig();
