@@ -1,4 +1,4 @@
-#define VERSION 0.1
+#define VERSION 0.2
 #define TYPE "FERMENTER"
 
 #include <string.h>
@@ -89,7 +89,7 @@ void setupConfig() {
   } else {
     randomSeed(analogRead(0));
     for (int i=0 ; i<16 ; i++) {
-      myConfig.sn[i] = 'a'+random(26);
+      myConfig.sn[i] = '0'+random(10);
     }
     saveConfig();
   }
