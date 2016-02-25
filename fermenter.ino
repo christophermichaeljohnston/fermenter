@@ -282,7 +282,6 @@ void getTemperatures() {
 }
 
 void loopPump() {
-  //Serial.println((myConfig.mode == HEAT  && ((myFermenter.temperature - myConfig.setpoint) <= (myConfig.hysteresis*2))));
   if (myStateMachine.pumpDelay == 0) {
     if ((myConfig.mode == CHILL && ((myFermenter.temperature - myConfig.setpoint) >= (myConfig.hysteresis*2))) || 
         (myConfig.mode == HEAT  && ((myFermenter.temperature - myConfig.setpoint) <= (myConfig.hysteresis*2)))) {
