@@ -33,11 +33,11 @@ struct stateMachine {
 //
 // configuration with defaults
 //
-#define CHILL 0
-#define HEAT 1
+#define CHILL C
+#define HEAT  H
 struct config {
   char sn[16]      = "";
-  int mode         = CHILL;
+  char mode        = CHILL;
   float setpoint   = 64.0;
   float hysteresis = 0.1;
   long pumpRun     = 5000;
@@ -205,9 +205,9 @@ void setSN (char * sn) {
 }
 
 void setMode (char * mode) {
-  if (strcmp(mode,"CHILL") == 0) {
+  if (strcmp(mode,"C") == 0) {
     myConfig.mode = CHILL;
-  } else if (strcmp(mode,"HEAT") == 0) {
+  } else if (strcmp(mode,"H") == 0) {
     myConfig.mode = HEAT;
   }
   saveConfig();
