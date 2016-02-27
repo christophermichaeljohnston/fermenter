@@ -33,8 +33,8 @@ struct stateMachine {
 //
 // configuration with defaults
 //
-#define CHILL C
-#define HEAT  H
+#define CHILL 'C'
+#define HEAT  'H'
 struct config {
   char sn[16]      = "";
   char mode        = CHILL;
@@ -201,14 +201,21 @@ void setSN (char * sn) {
   if (strlen(sn) < 16) {
     strcpy(myConfig.sn, sn);
     saveConfig();
+    Serial.println("set");
+  } else {
+    Serial.println("string too long (16 max)");
   }
 }
 
 void setMode (char * mode) {
   if (strcmp(mode,"C") == 0) {
     myConfig.mode = CHILL;
+    Serial.println("set");
   } else if (strcmp(mode,"H") == 0) {
     myConfig.mode = HEAT;
+    Serial.println("set");
+  } else {
+    Serial.println("unknown mode");
   }
   saveConfig();
 }
@@ -217,6 +224,9 @@ void setSetpoint(float setpoint) {
   if (setpoint >= 32.0 && setpoint <= 212.0) {
     myConfig.setpoint = setpoint;
     saveConfig();
+    Serial.println("set");
+  } else {
+    Serial.println("out of range (32-212)");
   }
 }
 
@@ -224,6 +234,9 @@ void setHysteresis(float hysteresis) {
   if (hysteresis >= 0.1 && hysteresis <= 1.0) {
     myConfig.hysteresis = hysteresis;
     saveConfig();
+    Serial.println("set");
+  } else {
+    Serial.println("out of range (0.1-1.0)");
   }
 }
 
@@ -231,6 +244,9 @@ void setPumpRun(long pumpRun) {
   if (pumpRun >= 1000 && pumpRun <= 60000) {
     myConfig.pumpRun = pumpRun;
     saveConfig();
+    Serial.println("set");
+  } else {
+    Serial.println("out of range (1000-60000)");
   }
 }
 
@@ -238,6 +254,9 @@ void setPumpDelay(long pumpDelay) {
   if (pumpDelay >= 60000 && pumpDelay <= 600000) {
     myConfig.pumpDelay = pumpDelay;
     saveConfig();
+    Serial.println("set");
+  } else {
+    Serial.println("out of range (60000-600000)");
   }
 }
 
