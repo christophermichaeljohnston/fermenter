@@ -153,11 +153,7 @@ void runCommand(char * cmd, char * param) {
   } else if (strcmp(cmd,"getSN") == 0) {
     Serial.println(myConfig.sn);
   } else if (strcmp(cmd, "getMode") == 0) {
-    if (myConfig.mode == CHILL) {
-      Serial.println("CHILL");
-    } else {
-      Serial.println("HEAT");
-    }
+    Serial.println(myConfig.mode);
   } else if (strcmp(cmd,"getSetpoint") == 0) {
     Serial.println(myConfig.setpoint);
   } else if (strcmp(cmd,"getHysteresis") == 0) {
