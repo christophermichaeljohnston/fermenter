@@ -1,4 +1,4 @@
-#define VERSION 0.2
+#define VERSION 0.1
 #define TYPE "FERMENTER"
 
 #include <string.h>
@@ -36,7 +36,7 @@ struct stateMachine {
 #define CHILL 'C'
 #define HEAT  'H'
 struct config {
-  char sn[16]      = "";
+  char sn[17]      = "";
   char mode        = CHILL;
   float setpoint   = 64.0;
   float hysteresis = 0.1;
