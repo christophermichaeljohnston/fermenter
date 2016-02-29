@@ -1,5 +1,5 @@
 #define VERSION 0.2
-#define TYPE "FERMENTER"
+#define TYPE "F"
 
 #include <string.h>
 #include <EEPROM.h>
