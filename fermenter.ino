@@ -1,4 +1,4 @@
-#define VERSION 0.2
+#define VERSION 0.3
 #define TYPE 'F'
 
 #include <string.h>
@@ -37,6 +37,7 @@ struct stateMachine {
 #define HEAT  'H'
 struct config {
   char sn[17]      = "";
+  char tag[17]     = "";
   char mode        = CHILL;
   float setpoint   = 64.0;
   float hysteresis = 0.1;
@@ -152,6 +153,8 @@ void runCommand(char * cmd, char * param) {
     Serial.println(TYPE);
   } else if (strcmp(cmd,"getSN") == 0) {
     Serial.println(myConfig.sn);
+  } else if (strcmp(cmd,"getTag") == 0) {
+    Serial.println(myConfig.tag);
   } else if (strcmp(cmd, "getMode") == 0) {
     Serial.println(myConfig.mode);
   } else if (strcmp(cmd,"getSetpoint") == 0) {
@@ -169,8 +172,8 @@ void runCommand(char * cmd, char * param) {
   } else if (strcmp(cmd,"getDeviceAddress") == 0) {
     printAddress(myFermenter.deviceAddress);
     Serial.println();
-  } else if (strcmp(cmd,"setSN") == 0) {
-    setSN(param);
+  } else if (strcmp(cmd,"setTag") == 0) {
+    setTag(param);
   } else if (strcmp(cmd,"setMode") == 0) {
     setMode(param);
   } else if (strcmp(cmd,"setSetpoint") == 0) {
@@ -193,9 +196,9 @@ void printAddress(DeviceAddress deviceAddress) {
   }
 }
 
-void setSN (char * sn) {
+void setTag (char * tag) {
   if (strlen(sn) < 16) {
-    strcpy(myConfig.sn, sn);
+    strcpy(myConfig.tag, tag);
     saveConfig();
     Serial.println("set");
   } else {
