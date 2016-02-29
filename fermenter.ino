@@ -1,10 +1,5 @@
-<<<<<<< HEAD
 #define VERSION 0.2
-#define TYPE "F"
-=======
-#define VERSION 0.1
-#define TYPE "FERMENTER"
->>>>>>> 7a98e85450e920f938c8da794dbcfc7589dc6497
+#define TYPE 'F'
 
 #include <string.h>
 #include <EEPROM.h>
