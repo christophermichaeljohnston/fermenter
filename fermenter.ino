@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 #define VERSION 0.2
 #define TYPE "F"
+=======
+#define VERSION 0.1
+#define TYPE "FERMENTER"
+>>>>>>> 7a98e85450e920f938c8da794dbcfc7589dc6497
 
 #include <string.h>
 #include <EEPROM.h>
@@ -33,10 +38,10 @@ struct stateMachine {
 //
 // configuration with defaults
 //
-#define CHILL C
-#define HEAT  H
+#define CHILL 'C'
+#define HEAT  'H'
 struct config {
-  char sn[16]      = "";
+  char sn[17]      = "";
   char mode        = CHILL;
   float setpoint   = 64.0;
   float hysteresis = 0.1;
@@ -153,11 +158,7 @@ void runCommand(char * cmd, char * param) {
   } else if (strcmp(cmd,"getSN") == 0) {
     Serial.println(myConfig.sn);
   } else if (strcmp(cmd, "getMode") == 0) {
-    if (myConfig.mode == CHILL) {
-      Serial.println("CHILL");
-    } else {
-      Serial.println("HEAT");
-    }
+    Serial.println(myConfig.mode);
   } else if (strcmp(cmd,"getSetpoint") == 0) {
     Serial.println(myConfig.setpoint);
   } else if (strcmp(cmd,"getHysteresis") == 0) {
@@ -201,14 +202,21 @@ void setSN (char * sn) {
   if (strlen(sn) < 16) {
     strcpy(myConfig.sn, sn);
     saveConfig();
+    Serial.println("set");
+  } else {
+    Serial.println("string too long (16 max)");
   }
 }
 
 void setMode (char * mode) {
   if (strcmp(mode,"C") == 0) {
     myConfig.mode = CHILL;
+    Serial.println("set");
   } else if (strcmp(mode,"H") == 0) {
     myConfig.mode = HEAT;
+    Serial.println("set");
+  } else {
+    Serial.println("unknown mode");
   }
   saveConfig();
 }
@@ -217,6 +225,9 @@ void setSetpoint(float setpoint) {
   if (setpoint >= 32.0 && setpoint <= 212.0) {
     myConfig.setpoint = setpoint;
     saveConfig();
+    Serial.println("set");
+  } else {
+    Serial.println("out of range (32-212)");
   }
 }
 
@@ -224,6 +235,9 @@ void setHysteresis(float hysteresis) {
   if (hysteresis >= 0.1 && hysteresis <= 1.0) {
     myConfig.hysteresis = hysteresis;
     saveConfig();
+    Serial.println("set");
+  } else {
+    Serial.println("out of range (0.1-1.0)");
   }
 }
 
@@ -231,6 +245,9 @@ void setPumpRun(long pumpRun) {
   if (pumpRun >= 1000 && pumpRun <= 60000) {
     myConfig.pumpRun = pumpRun;
     saveConfig();
+    Serial.println("set");
+  } else {
+    Serial.println("out of range (1000-60000)");
   }
 }
 
@@ -238,6 +255,9 @@ void setPumpDelay(long pumpDelay) {
   if (pumpDelay >= 60000 && pumpDelay <= 600000) {
     myConfig.pumpDelay = pumpDelay;
     saveConfig();
+    Serial.println("set");
+  } else {
+    Serial.println("out of range (60000-600000)");
   }
 }
 
