@@ -197,7 +197,7 @@ void printAddress(DeviceAddress deviceAddress) {
 }
 
 void setTag (char * tag) {
-  if (strlen(sn) < 16) {
+  if (strlen(tag) < 16) {
     strcpy(myConfig.tag, tag);
     saveConfig();
     Serial.println("set");
