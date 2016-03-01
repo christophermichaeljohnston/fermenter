@@ -1,5 +1,5 @@
 # fermenter
 
-Requires an Arduino, DS18B20 temperature sensor, 1 channel relay, and the power supply and pump from the original FTSs package.
+Requires an Arduino, DS18B20 temperature sensor, 1 channel relay, and pump and power supply (optionally reuse FTSs pump and power supply)
 
-Controllable either through the Arduino IDE serial port, or through the brewery app connected via USB to a Raspberry PI.
+Controllable either through the Arduino IDE serial port, or USB connected to a Raspberry PI that is running the brewery frontend.
