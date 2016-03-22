@@ -301,21 +301,22 @@ void getTemperatures() {
 
 void loopPump() {
   if (myStateMachine.pumpDelay == 0) {
-    if ((myConfig.mode == CHILL && ((myFermenter.temperature - myConfig.setpoint) >= (myConfig.hysteresis*2))) || 
-        (myConfig.mode == HEAT  && ((myFermenter.temperature - myConfig.setpoint) <= (myConfig.hysteresis*2)))) {
-        myFermenter.failsafe = true;
-        onPump();
-    }
-    if (myFermenter.failsafe) {
-      if ((myConfig.mode == CHILL && (myFermenter.temperature - myConfig.setpoint) <= 0.0) ||
-          (myConfig.mode == HEAT  && (myFermenter.temperature - myConfig.setpoint) >= 0.0)) {
-        myFermenter.failsafe = false;
-        offPump();
-      }
-    } else {
+    //if ((myConfig.mode == CHILL && ((myFermenter.temperature - myConfig.setpoint) >= (myConfig.hysteresis*5))) || 
+    //    (myConfig.mode == HEAT  && ((myFermenter.temperature - myConfig.setpoint) <= (myConfig.hysteresis*5)))) {
+    //    myFermenter.failsafe = true;
+    //    onPump();
+    //}
+    //if (myFermenter.failsafe) {
+    //  if ((myConfig.mode == CHILL && (myFermenter.temperature - myConfig.setpoint) <= myConfig.hysteresis) ||
+    //      (myConfig.mode == HEAT  && (myFermenter.temperature - myConfig.setpoint) >= myConfig.hysteresis)) {
+    //    myFermenter.failsafe = false;
+    //    offPump();
+    //  }
+    //} else {
+
       if (myStateMachine.pump == 0) {
         if ((myConfig.mode == CHILL && ((myFermenter.temperature - myConfig.setpoint) >= myConfig.hysteresis)) ||
-            (myConfig.mode == HEAT  && ((myFermenter.temperature - myConfig.setpoint) <= myConfig.hysteresis))) {
+            (myConfig.mode == HEAT  && ((myFermenter.temperature - myConfig.setpoint) <= (-myConfig.hysteresis)))) {
           onPump();
         }
       } else {
@@ -323,7 +324,8 @@ void loopPump() {
           offPump();
         }
       }
-    }
+      
+    //}
   } else if ((millis() - myStateMachine.pumpDelay) >= myConfig.pumpDelay) {
     myStateMachine.pumpDelay = 0;
   }
