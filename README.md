@@ -6,4 +6,4 @@ Controllable either through the Arduino IDE serial port, USB connected to a Rasp
 
 VERSION2 : compiles, ready to test.
 
-Support for 2 fermenters. Removes failsafe operation to be replaced by fast and slow speeds. Currently only slow implemented.
+Support for 2 fermenters. Removes failsafe operation to be replaced by fast and slow speeds. Currently only slow implemented. Not compatible with brewery frontend.
