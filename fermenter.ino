@@ -138,6 +138,7 @@ void parseBuffer() {
   char * b = myBuffer.buffer;
   char * word;
   char * cmd = NULL;
+  char * fermenter = NULL;
   char * param = NULL;
   int count = 0;
   while ((word = strtok_r(b,",",&b)) != NULL) {
@@ -146,56 +147,55 @@ void parseBuffer() {
         cmd = word;
         break;
       case 1:
-        param = word;
+        fermenter = word;
         break;
+      case 2:
+        param = word;
       default:
         Serial.println("invalid command");
         return;
     }
     count++;
   }
-  //runCommand(cmd, param);
+  runCommand(cmd, fermenter, param);
 }
 
-/*
-void runCommand(char * cmd, char * param) {
+void runCommand(char * cmd, char * fermenter, char * param) {
   if (strcmp(cmd,"getVersion") == 0) {
-    Serial.println(myConfig.version);
+    Serial.println(myDevice.version);
   } else if (strcmp(cmd,"getType") == 0) {
     Serial.println(TYPE);
   } else if (strcmp(cmd,"getSN") == 0) {
-    Serial.println(myConfig.sn);
-  } else if (strcmp(cmd,"getTag") == 0) {
-    Serial.println(myConfig.tag);
+    Serial.println(myDevice.sn);
+  } else if (strcmp(cmd,"getName") == 0) {
+    Serial.println(myFermenter[atoi(fermenter)].config.name);
   } else if (strcmp(cmd, "getMode") == 0) {
-    Serial.println(myConfig.mode);
+    Serial.println(myFermenter[atoi(fermenter)].config.mode);
   } else if (strcmp(cmd,"getSetpoint") == 0) {
-    Serial.println(myConfig.setpoint);
+    Serial.println(myFermenter[atoi(fermenter)].config.setpoint);
   } else if (strcmp(cmd,"getHysteresis") == 0) {
-    Serial.println(myConfig.hysteresis);
+    Serial.println(myFermenter[atoi(fermenter)].config.hysteresis);
   } else if (strcmp(cmd,"getPumpRun") == 0) {
-    Serial.println(myConfig.pumpRun);
+    Serial.println(myFermenter[atoi(fermenter)].config.pumpRun);
   } else if (strcmp(cmd,"getPumpDelay") == 0) {
-    Serial.println(myConfig.pumpDelay);
+    Serial.println(myFermenter[atoi(fermenter)].config.pumpDelay);
   } else if (strcmp(cmd,"getTemperature") == 0) {
-    Serial.println(myFermenter.temperature);
-  } else if (strcmp(cmd,"getFailsafe") == 0) {
-    Serial.println(myFermenter.failsafe);
+    Serial.println(myFermenter[atoi(fermenter)].temperature);
   } else if (strcmp(cmd,"getDeviceAddress") == 0) {
-    printAddress(myFermenter.deviceAddress);
+    printAddress(myFermenter[atoi(fermenter)].deviceAddress);
     Serial.println();
-  } else if (strcmp(cmd,"setTag") == 0) {
-    setTag(param);
+  } else if (strcmp(cmd,"setName") == 0) {
+    setName(atoi(fermenter),param);
   } else if (strcmp(cmd,"setMode") == 0) {
-    setMode(param);
+    setMode(atoi(fermenter),param);
   } else if (strcmp(cmd,"setSetpoint") == 0) {
-    setSetpoint(atof(param));
+    setSetpoint(atoi(fermenter),atof(param));
   } else if (strcmp(cmd,"setHysteresis") == 0) {
-    setHysteresis(atof(param));
+    setHysteresis(atoi(fermenter),atof(param));
   } else if (strcmp(cmd, "setPumpRun") == 0) {
-    setPumpRun(atol(param));
+    setPumpRun(atoi(fermenter),atol(param));
   } else if (strcmp(cmd, "setPumpDelay") == 0) {
-    setPumpDelay(atol(param));
+    setPumpDelay(atoi(fermenter),atol(param));
   } else {
     Serial.println("unknown command");
   }
@@ -208,9 +208,9 @@ void printAddress(DeviceAddress deviceAddress) {
   }
 }
 
-void setTag (char * tag) {
-  if (strlen(tag) < 16) {
-    strcpy(myConfig.tag, tag);
+void setName (int fermenter, char * name) {
+  if (strlen(name) < 16) {
+    strcpy(myFermenter[fermenter].config.name, name);
     saveConfig();
     Serial.println("set");
   } else {
@@ -218,12 +218,12 @@ void setTag (char * tag) {
   }
 }
 
-void setMode (char * mode) {
+void setMode (int fermenter, char * mode) {
   if (strcmp(mode,"C") == 0) {
-    myConfig.mode = CHILL;
+    myFermenter[fermenter].config.mode = CHILL;
     Serial.println("set");
   } else if (strcmp(mode,"H") == 0) {
-    myConfig.mode = HEAT;
+    myFermenter[fermenter].config.mode = HEAT;
     Serial.println("set");
   } else {
     Serial.println("unknown mode");
@@ -231,9 +231,9 @@ void setMode (char * mode) {
   saveConfig();
 }
 
-void setSetpoint(float setpoint) {
+void setSetpoint(int fermenter, float setpoint) {
   if (setpoint >= 32.0 && setpoint <= 212.0) {
-    myConfig.setpoint = setpoint;
+    myFermenter[fermenter].config.setpoint = setpoint;
     saveConfig();
     Serial.println("set");
   } else {
@@ -241,9 +241,9 @@ void setSetpoint(float setpoint) {
   }
 }
 
-void setHysteresis(float hysteresis) {
+void setHysteresis(int fermenter, float hysteresis) {
   if (hysteresis >= 0.1 && hysteresis <= 1.0) {
-    myConfig.hysteresis = hysteresis;
+    myFermenter[fermenter].config.hysteresis = hysteresis;
     saveConfig();
     Serial.println("set");
   } else {
@@ -251,9 +251,9 @@ void setHysteresis(float hysteresis) {
   }
 }
 
-void setPumpRun(long pumpRun) {
+void setPumpRun(int fermenter, long pumpRun) {
   if (pumpRun >= 1000 && pumpRun <= 60000) {
-    myConfig.pumpRun = pumpRun;
+    myFermenter[fermenter].config.pumpRun = pumpRun;
     saveConfig();
     Serial.println("set");
   } else {
@@ -261,16 +261,15 @@ void setPumpRun(long pumpRun) {
   }
 }
 
-void setPumpDelay(long pumpDelay) {
+void setPumpDelay(int fermenter, long pumpDelay) {
   if (pumpDelay >= 60000 && pumpDelay <= 600000) {
-    myConfig.pumpDelay = pumpDelay;
+    myFermenter[fermenter].config.pumpDelay = pumpDelay;
     saveConfig();
     Serial.println("set");
   } else {
     Serial.println("out of range (60000-600000)");
   }
 }
-*/
 
 void resetBuffer() {
   int i;
