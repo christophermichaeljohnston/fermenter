@@ -291,7 +291,7 @@ void setupSensors() {
 void setupPumps() {
   int i;
   for ( i=0 ; i<=1 ; i++) {
-    pinMode(i, OUTPUT);
+    pinMode(PUMP[i], OUTPUT);
     offPump(i);
   }
 }
