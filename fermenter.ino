@@ -1,4 +1,4 @@
-#define VERSION 0.4
+#define VERSION 0.6
 #define TYPE 'F'
 
 #include <string.h>
@@ -37,16 +37,13 @@ const int PUMP[] = {4,5};
 //
 #define CHILL 0
 #define HEAT  1
-#define SLOW  0
-#define FAST  1
 struct fermenterConfig {
   char name[17]     = "";
-  int mode        = CHILL;
-  int speed       = SLOW;
+  int mode         = CHILL;
   float setpoint   = 64.0;
   float hysteresis = 0.1;
   long pumpRun     = 5000;
-  long pumpDelay   = 60000;
+  long pumpDelay   = 300000;
 };
 struct fermenterStateMachine {
   unsigned long pump      = 0;
@@ -75,9 +72,9 @@ struct buffer {
 
 void setup() {
   setupSerial();
-  setupConfig();
   setupSensors();
-  setupPump();
+  setupPumps();
+  setupConfig();
   Serial.println("Ready...");
 }
 
@@ -101,6 +98,8 @@ void setupConfig() {
     for (int i=0 ; i<16 ; i++) {
       myDevice.sn[i] = '0'+random(10);
     }
+    sensors.getAddress(myFermenter[0].deviceAddress, 0);
+    sensors.getAddress(myFermenter[1].deviceAddress, 1);
     saveConfig();
   }
 }
@@ -142,6 +141,7 @@ void parseBuffer() {
   char * param = NULL;
   int count = 0;
   while ((word = strtok_r(b,",",&b)) != NULL) {
+    
     switch(count) {
       case 0:
         cmd = word;
@@ -151,6 +151,7 @@ void parseBuffer() {
         break;
       case 2:
         param = word;
+        break;
       default:
         Serial.println("invalid command");
         return;
@@ -262,7 +263,7 @@ void setPumpRun(int fermenter, long pumpRun) {
 }
 
 void setPumpDelay(int fermenter, long pumpDelay) {
-  if (pumpDelay >= 60000 && pumpDelay <= 600000) {
+  if (pumpDelay >= 10000 && pumpDelay <= 600000) {
     myFermenter[fermenter].config.pumpDelay = pumpDelay;
     saveConfig();
     Serial.println("set");
@@ -285,11 +286,9 @@ void setupSensors() {
   sensors.begin();
   sensors.setWaitForConversion(WAIT_FOR_CONVERSION);
   sensors.setResolution(RESOLUTION);
-  sensors.getAddress(myFermenter[0].deviceAddress, 0);
-  sensors.getAddress(myFermenter[1].deviceAddress, 1);
 }
 
-void setupPump() {
+void setupPumps() {
   int i;
   for ( i=0 ; i<=1 ; i++) {
     pinMode(i, OUTPUT);
