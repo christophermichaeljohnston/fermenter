@@ -35,8 +35,9 @@ const int PUMP[] = {4,5};
 //
 // fermenters
 //
-#define CHILL 0
-#define HEAT  1
+#define OFF  0
+#define CHILL 1
+#define HEAT  2
 struct fermenterConfig {
   char name[17]     = "";
   int mode         = CHILL;
@@ -188,7 +189,7 @@ void runCommand(char * cmd, char * fermenter, char * param) {
   } else if (strcmp(cmd,"setName") == 0) {
     setName(atoi(fermenter),param);
   } else if (strcmp(cmd,"setMode") == 0) {
-    setMode(atoi(fermenter),param);
+    setMode(atoi(fermenter),atoi(param));
   } else if (strcmp(cmd,"setSetpoint") == 0) {
     setSetpoint(atoi(fermenter),atof(param));
   } else if (strcmp(cmd,"setHysteresis") == 0) {
@@ -219,11 +220,14 @@ void setName (int fermenter, char * name) {
   }
 }
 
-void setMode (int fermenter, char * mode) {
-  if (strcmp(mode,"C") == 0) {
+void setMode (int fermenter, int mode) {
+  if (mode == OFF) {
+    myFermenter[fermenter].config.mode = OFF;
+    Serial.println("set");
+  } else if (mode == CHILL) {
     myFermenter[fermenter].config.mode = CHILL;
     Serial.println("set");
-  } else if (strcmp(mode,"H") == 0) {
+  } else if (mode == HEAT) {
     myFermenter[fermenter].config.mode = HEAT;
     Serial.println("set");
   } else {
