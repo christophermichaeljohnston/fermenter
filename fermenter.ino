@@ -1,4 +1,4 @@
-#define VERSION 0.6
+#define VERSION 0.7
 #define TYPE 'F'
 
 #include <string.h>
@@ -40,7 +40,7 @@ const int PUMP[] = {4,5};
 #define HEAT  2
 struct fermenterConfig {
   char name[17]     = "";
-  int mode         = CHILL;
+  int mode         = OFF;
   float setpoint   = 64.0;
   float hysteresis = 0.1;
   long pumpRun     = 5000;
