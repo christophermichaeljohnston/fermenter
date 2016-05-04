@@ -1,4 +1,4 @@
-#define VERSION 0.7
+#define VERSION 0.8
 #define TYPE 'F'
 
 #include <string.h>
@@ -43,10 +43,14 @@ struct fermenterConfig {
   int mode         = OFF;
   float setpoint   = 64.0;
   float hysteresis = 0.1;
-  long pumpRun     = 5000;
-  long pumpDelay   = 300000;
+  float rampStep   = 0.0;
+  float rampPoint  = 68.0;
+  unsigned long rampDelay = 60000;
+  unsigned long pumpRun   = 5000;
+  unsigned long pumpDelay = 300000;
 };
 struct fermenterStateMachine {
+  unsigned long rampDelay = 0;
   unsigned long pump      = 0;
   unsigned long pumpDelay = 0;
 };
@@ -177,7 +181,13 @@ void runCommand(char * cmd, char * fermenter, char * param) {
     Serial.println(myFermenter[atoi(fermenter)].config.setpoint);
   } else if (strcmp(cmd,"getHysteresis") == 0) {
     Serial.println(myFermenter[atoi(fermenter)].config.hysteresis);
-  } else if (strcmp(cmd,"getPumpRun") == 0) {
+  } else if (strcmp(cmd, "getRampStep") == 0) {
+    Serial.println(myFermenter[atoi(fermenter)].config.rampStep);
+  } else if (strcmp(cmd, "getRampPoint") == 0) {
+    Serial.println(myFermenter[atoi(fermenter)].config.rampPoint);
+  } else if (strcmp(cmd, "getRampDelay") == 0) {
+    Serial.println(myFermenter[atoi(fermenter)].config.rampDelay);
+  } else if (strcmp(cmd,"getPumpDelay") == 0) {
     Serial.println(myFermenter[atoi(fermenter)].config.pumpRun);
   } else if (strcmp(cmd,"getPumpDelay") == 0) {
     Serial.println(myFermenter[atoi(fermenter)].config.pumpDelay);
@@ -194,6 +204,12 @@ void runCommand(char * cmd, char * fermenter, char * param) {
     setSetpoint(atoi(fermenter),atof(param));
   } else if (strcmp(cmd,"setHysteresis") == 0) {
     setHysteresis(atoi(fermenter),atof(param));
+  } else if (strcmp(cmd,"setRampStep") == 0) {
+    setRampStep(atoi(fermenter),atof(param));
+  } else if (strcmp(cmd,"setRampPoint") == 0) {
+    setRampPoint(atoi(fermenter),atof(param));
+  } else if (strcmp(cmd,"setRampDelay") == 0) {
+    setRampDelay(atoi(fermenter),atof(param));
   } else if (strcmp(cmd, "setPumpRun") == 0) {
     setPumpRun(atoi(fermenter),atol(param));
   } else if (strcmp(cmd, "setPumpDelay") == 0) {
@@ -242,7 +258,7 @@ void setSetpoint(int fermenter, float setpoint) {
     saveConfig();
     Serial.println("set");
   } else {
-    Serial.println("out of range (32-212)");
+    Serial.println("out of range (32 to 212)");
   }
 }
 
@@ -252,7 +268,37 @@ void setHysteresis(int fermenter, float hysteresis) {
     saveConfig();
     Serial.println("set");
   } else {
-    Serial.println("out of range (0.1-1.0)");
+    Serial.println("out of range (0.1 to 1.0)");
+  }
+}
+
+void setRampStep(int fermenter, float rampStep) {
+  if (rampStep >= -1.0 && rampStep <= 1.0) {
+    myFermenter[fermenter].config.rampStep = rampStep;
+    saveConfig();
+    Serial.println("set");
+  } else {
+    Serial.println("out or range (-1.0 to 1.0)");
+  }
+}
+
+void setRampPoint(int fermenter, float rampPoint) {
+  if (rampPoint >= 32.0 && rampPoint <= 212.0) {
+    myFermenter[fermenter].config.rampPoint = rampPoint;
+    saveConfig();
+    Serial.println("set");
+  } else {
+    Serial.println("out or range (0.1 to 1.0)");
+  }
+}
+
+void setRampDelay(int fermenter, float rampDelay) {
+  if (rampDelay >= 60000 && rampDelay <= 1440000) {
+    myFermenter[fermenter].config.rampDelay = rampDelay;
+    saveConfig();
+    Serial.println("set");
+  } else {
+    Serial.println("out or range (60000 to 1440000)");
   }
 }
 
@@ -262,7 +308,7 @@ void setPumpRun(int fermenter, long pumpRun) {
     saveConfig();
     Serial.println("set");
   } else {
-    Serial.println("out of range (1000-60000)");
+    Serial.println("out of range (1000 to 60000)");
   }
 }
 
@@ -272,7 +318,7 @@ void setPumpDelay(int fermenter, long pumpDelay) {
     saveConfig();
     Serial.println("set");
   } else {
-    Serial.println("out of range (60000-600000)");
+    Serial.println("out of range (60000 to 600000)");
   }
 }
 
@@ -335,6 +381,19 @@ void loopFermenter(int fermenter) {
     }
   } else if ((millis() - myFermenter[fermenter].stateMachine.pumpDelay) >= myFermenter[fermenter].config.pumpDelay) {
     myFermenter[fermenter].stateMachine.pumpDelay = 0;
+  }
+  if (myFermenter[fermenter].config.rampStep != 0.0) {
+    if (myFermenter[fermenter].stateMachine.rampDelay == 0) {
+      myFermenter[fermenter].config.setpoint += myFermenter[fermenter].config.rampStep;
+      if (abs(myFermenter[fermenter].config.rampPoint-myFermenter[fermenter].config.setpoint) < abs(myFermenter[fermenter].config.rampStep)){
+        myFermenter[fermenter].config.setpoint = myFermenter[fermenter].config.rampPoint;
+        myFermenter[fermenter].config.rampStep = 0;
+      }
+      saveConfig();
+      myFermenter[fermenter].stateMachine.rampDelay = millis();
+    } else if ((millis() - myFermenter[fermenter].stateMachine.rampDelay) >= myFermenter[fermenter].config.rampDelay) {
+      myFermenter[fermenter].stateMachine.rampDelay = 0;
+    }
   }
 }
 
