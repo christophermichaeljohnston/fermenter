@@ -1,4 +1,4 @@
-#define VERSION 0.8
+#define VERSION 0.81
 #define TYPE 'F'
 
 #include <string.h>
@@ -45,7 +45,7 @@ struct fermenterConfig {
   float hysteresis = 0.1;
   float rampStep   = 0.0;
   float rampPoint  = 68.0;
-  unsigned long rampDelay = 60000;
+  unsigned long rampDelay = 3600000;
   unsigned long pumpRun   = 5000;
   unsigned long pumpDelay = 300000;
 };
@@ -103,6 +103,8 @@ void setupConfig() {
     for (int i=0 ; i<16 ; i++) {
       myDevice.sn[i] = '0'+random(10);
     }
+    strcpy(myFermenter[0].config.name,"0");
+    strcpy(myFermenter[1].config.name,"1");
     sensors.getAddress(myFermenter[0].deviceAddress, 0);
     sensors.getAddress(myFermenter[1].deviceAddress, 1);
     saveConfig();
@@ -187,7 +189,7 @@ void runCommand(char * cmd, char * fermenter, char * param) {
     Serial.println(myFermenter[atoi(fermenter)].config.rampPoint);
   } else if (strcmp(cmd, "getRampDelay") == 0) {
     Serial.println(myFermenter[atoi(fermenter)].config.rampDelay);
-  } else if (strcmp(cmd,"getPumpDelay") == 0) {
+  } else if (strcmp(cmd,"getPumpRun") == 0) {
     Serial.println(myFermenter[atoi(fermenter)].config.pumpRun);
   } else if (strcmp(cmd,"getPumpDelay") == 0) {
     Serial.println(myFermenter[atoi(fermenter)].config.pumpDelay);
@@ -209,11 +211,11 @@ void runCommand(char * cmd, char * fermenter, char * param) {
   } else if (strcmp(cmd,"setRampPoint") == 0) {
     setRampPoint(atoi(fermenter),atof(param));
   } else if (strcmp(cmd,"setRampDelay") == 0) {
-    setRampDelay(atoi(fermenter),atof(param));
+    setRampDelay(atoi(fermenter),strtoul(param, NULL, 10));
   } else if (strcmp(cmd, "setPumpRun") == 0) {
-    setPumpRun(atoi(fermenter),atol(param));
+    setPumpRun(atoi(fermenter),strtoul(param, NULL, 10));
   } else if (strcmp(cmd, "setPumpDelay") == 0) {
-    setPumpDelay(atoi(fermenter),atol(param));
+    setPumpDelay(atoi(fermenter),strtoul(param, NULL, 10));
   } else {
     Serial.println("unknown command");
   }
@@ -292,17 +294,17 @@ void setRampPoint(int fermenter, float rampPoint) {
   }
 }
 
-void setRampDelay(int fermenter, float rampDelay) {
-  if (rampDelay >= 60000 && rampDelay <= 1440000) {
+void setRampDelay(int fermenter, unsigned long rampDelay) {
+  if (rampDelay >= 3600000 && rampDelay <= 86400000) {
     myFermenter[fermenter].config.rampDelay = rampDelay;
     saveConfig();
     Serial.println("set");
   } else {
-    Serial.println("out or range (60000 to 1440000)");
+    Serial.println("out or range (3600000 to 86400000)");
   }
 }
 
-void setPumpRun(int fermenter, long pumpRun) {
+void setPumpRun(int fermenter, unsigned long pumpRun) {
   if (pumpRun >= 1000 && pumpRun <= 60000) {
     myFermenter[fermenter].config.pumpRun = pumpRun;
     saveConfig();
@@ -312,7 +314,7 @@ void setPumpRun(int fermenter, long pumpRun) {
   }
 }
 
-void setPumpDelay(int fermenter, long pumpDelay) {
+void setPumpDelay(int fermenter, unsigned long pumpDelay) {
   if (pumpDelay >= 10000 && pumpDelay <= 600000) {
     myFermenter[fermenter].config.pumpDelay = pumpDelay;
     saveConfig();
