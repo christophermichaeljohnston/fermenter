@@ -183,7 +183,7 @@ void runCommand(char * cmd, char * fermenter, char * param) {
   } else if (strcmp(cmd,"getPumpDelay") == 0) {
     Serial.println(myFermenter[atoi(fermenter)].config.pumpDelay);
   } else if (strcmp(cmd,"getTemperature") == 0) {
-    Serial.println(myFermenter[atoi(fermenter)].temperature);
+    Serial.println(myFermenter[atoi(fermenter)].temperature,4);
   } else if (strcmp(cmd,"getDeviceAddress") == 0) {
     printAddress(myFermenter[atoi(fermenter)].deviceAddress);
     Serial.println();
