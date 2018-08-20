@@ -1,4 +1,4 @@
-#define VERSION 2.0
+#define VERSION 2.2
 #define TYPE "FERMENTER"
 
 #include <string.h>
@@ -39,6 +39,7 @@ const int PUMP[] = {4,5};
 #define OFF  0
 #define CHILL 1
 #define HEAT  2
+#define FERMENTERS 2
 
 struct fermenterConfig {
   int mode         = OFF;
@@ -58,7 +59,7 @@ struct fermenter {
   struct fermenterStateMachine stateMachine;
   DeviceAddress deviceAddress;
   float temperature = 0.0;
-} myFermenter[2];
+} myFermenter[FERMENTERS];
 
 //
 // buffer for serial communication
@@ -85,8 +86,26 @@ void setup() {
 void loop() {
   int i;
   loopSensors();
-  for ( i=0 ; i<=1 ; i++ ) {
+  for ( i=0 ; i<FERMENTERS ; i++ ) {
     loopFermenter(i);
+  }
+}
+
+void setupSerial() {
+  Serial.begin(9600);
+}
+
+void setupSensors() {
+  sensors.begin();
+  sensors.setWaitForConversion(WAIT_FOR_CONVERSION);
+  sensors.setResolution(RESOLUTION);
+}
+
+void setupPumps() {
+  int i;
+  for ( i=0 ; i<FERMENTERS ; i++) {
+    pinMode(PUMP[i], OUTPUT);
+    offPump(i);
   }
 }
 
@@ -112,10 +131,6 @@ void saveConfig() {
   EEPROM.put(0, myDevice);
   EEPROM.put(sizeof(struct device), myFermenter[0]);
   EEPROM.put(sizeof(struct device)+sizeof(struct fermenter), myFermenter[1]);
-}
-
-void setupSerial() {
-  Serial.begin(9600);
 }
 
 void serialEvent() {
@@ -183,7 +198,7 @@ void runCommand(char * cmd, char * fermenter, char * param) {
   } else if (strcmp(cmd,"getPumpDelay") == 0) {
     Serial.println(myFermenter[atoi(fermenter)].config.pumpDelay);
   } else if (strcmp(cmd,"getTemperature") == 0) {
-    Serial.println(myFermenter[atoi(fermenter)].temperature);
+    Serial.println(myFermenter[atoi(fermenter)].temperature,4);
   } else if (strcmp(cmd,"getDeviceAddress") == 0) {
     printAddress(myFermenter[atoi(fermenter)].deviceAddress);
     Serial.println();
@@ -257,7 +272,7 @@ void setPumpRun(int fermenter, unsigned long pumpRun) {
 }
 
 void setPumpDelay(int fermenter, unsigned long pumpDelay) {
-  if (pumpDelay >= 10000 && pumpDelay <= 600000) {
+  if (pumpDelay >= 60000 && pumpDelay <= 600000) {
     myFermenter[fermenter].config.pumpDelay = pumpDelay;
     saveConfig();
     Serial.println("set");
@@ -276,19 +291,6 @@ void resetBuffer() {
   myBuffer.overflow = false;
 }
 
-void setupSensors() {
-  sensors.begin();
-  sensors.setWaitForConversion(WAIT_FOR_CONVERSION);
-  sensors.setResolution(RESOLUTION);
-}
-
-void setupPumps() {
-  int i;
-  for ( i=0 ; i<=1 ; i++) {
-    pinMode(PUMP[i], OUTPUT);
-    offPump(i);
-  }
-}
 
 void loopSensors() {
   if (mySensorStateMachine.sensors == 0) {
@@ -305,7 +307,7 @@ void requestTemperatures() {
 
 void getTemperatures() {
   int i;
-  for ( i=0 ; i<=1 ; i++ ) {
+  for ( i=0 ; i<FERMENTERS ; i++ ) {
     myFermenter[i].temperature = sensors.getTempF(myFermenter[i].deviceAddress);
   }
   mySensorStateMachine.sensors = 0;
@@ -319,8 +321,15 @@ void loopFermenter(int fermenter) {
         onPump(fermenter);
       }
     } else {
-      if ((millis() - myFermenter[fermenter].stateMachine.pumpRun) >= myFermenter[fermenter].config.pumpRun) {
-        offPump(fermenter);
+      if (myFermenter[fermenter].config.mode == CHILL) {
+        if ((myFermenter[fermenter].temperature-myFermenter[fermenter].config.setpoint) <= 1.0 && 
+            (millis() - myFermenter[fermenter].stateMachine.pumpRun) >= myFermenter[fermenter].config.pumpRun) {
+          offPump(fermenter);
+        }
+      } else {
+        if ((millis() - myFermenter[fermenter].stateMachine.pumpRun) >= myFermenter[fermenter].config.pumpRun) {
+          offPump(fermenter);
+        }
       }
     }
   } else if ((millis() - myFermenter[fermenter].stateMachine.pumpDelay) >= myFermenter[fermenter].config.pumpDelay) {
