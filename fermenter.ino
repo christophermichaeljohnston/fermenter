@@ -61,7 +61,7 @@ const unsigned long h1 = (5*60000); // 5 minute
 const unsigned long h2 = (2.5*60000); // 2.5 minute
 const unsigned long h3 = 60000; // 1 minute
 const unsigned long antiCycle  = 300000; // 5 minutes
-const unsigned long antiFight  = 1800000; // 15 minutes
+const unsigned long antiFight  = 1800000; // 30 minutes
 
 
 //
