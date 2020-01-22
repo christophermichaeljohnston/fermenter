@@ -1,4 +1,4 @@
-#define VERSION 1.1
+#define VERSION 1.0
 #define TYPE "FERMENTER"
 #define FERMENTERS 2
 
@@ -18,12 +18,12 @@ struct device {
 //
 // sensors
 //
-#define ONE_WIRE 8
+const int ONE_WIRE[] = { 10, 13 };
 #define RESOLUTION 12
 #define WAIT_FOR_CONVERSION false
 #define SENSOR_DELAY 1000
-OneWire oneWire(ONE_WIRE);
-DallasTemperature sensors(&oneWire);
+OneWire oneWireBus[] = { OneWire(ONE_WIRE[0]), OneWire(ONE_WIRE[1]) };
+DallasTemperature sensors[] = { &oneWireBus[0], &oneWireBus[1] };
 
 struct sensorStateMachine {
   unsigned long sensorDelay = 0;  
@@ -45,8 +45,8 @@ struct sensorStateMachine {
 //
 // CHILL and HEAT pins
 //
-const int PIN_CHILL[] = { 4, 6 };
-const int PIN_HEAT[] = { 5, 7 };
+const int PIN_CHILL[] = { 2, 4 };
+const int PIN_HEAT[] = { 3, 5 };
 
 // 
 // basic cycle control
@@ -121,9 +121,12 @@ void setupSerial() {
 }
 
 void setupSensors() {
-  sensors.begin();
-  sensors.setWaitForConversion(WAIT_FOR_CONVERSION);
-  sensors.setResolution(RESOLUTION);
+  int i;
+  for ( i=0 ; i<FERMENTERS ; i++ ) {
+    sensors[i].begin();
+    sensors[i].setWaitForConversion(WAIT_FOR_CONVERSION);
+    sensors[i].setResolution(RESOLUTION);
+  }
 }
 
 void setupPins() {
@@ -151,7 +154,7 @@ void setupConfig() {
       myDevice.sn[i] = '0'+random(10);
     }
     for ( i=0 ; i<FERMENTERS ; i++ ) {
-      sensors.getAddress(myFermenter[i].deviceAddress, i);
+      sensors[i].getAddress(myFermenter[i].deviceAddress, i);
     }
     saveConfig();
   }
@@ -286,14 +289,17 @@ void loopSensors() {
 }
 
 void requestTemperatures() {
-  sensors.requestTemperatures();
+  int i;
+  for ( i=0 ; i<FERMENTERS ; i++ ) {
+    sensors[i].requestTemperatures();
+  }
   mySensorStateMachine.sensorDelay = millis();
 }
 
 void getTemperatures() {
   int i;
   for ( i=0 ; i<FERMENTERS ; i++ ) {
-    myFermenter[i].temperature = sensors.getTempF(myFermenter[i].deviceAddress);
+    myFermenter[i].temperature = sensors[i].getTempF(myFermenter[i].deviceAddress);
   }
   mySensorStateMachine.sensorDelay = 0;
 }
