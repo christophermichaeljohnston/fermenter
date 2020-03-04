@@ -1,4 +1,4 @@
-#define VERSION 1.0
+#define VERSION 2.0
 #define TYPE "FERMENTER"
 
 #include <string.h>
@@ -19,40 +19,29 @@ struct device {
 const int ONE_WIRE[] = { 10, 13 };
 OneWire oneWireBus[] = { OneWire(ONE_WIRE[0]), OneWire(ONE_WIRE[1]) };
 DallasTemperature sensors[] = { &oneWireBus[0], &oneWireBus[1] };
+unsigned long sensorsRequestEnd = 0;
 
 // MODES
 #define OFF 0
 #define ON 1
 
-// CHILL and HEAT pins
-//const int PIN_CHILL[] = { 2, 4 };
-//const int PIN_HEAT[] = { 3, 5 };
-const int PIN_CHILL = 2;
-const int PIN_HEAT =  3;
+// CHILL pins
+const int PIN_CHILL[] = { 2, 4 };
 
-// config with defaults
+// fermenter config
 struct config {
-  int mode         = OFF;
-  float setpoint   = 64.0;
-  float hysteresis = 0.1;
-  unsigned long antiCycle    = 300000; // 5 minutes
-  unsigned long antiFight    = 1800000; // 30 minutes
-} myConfig;
+  int mode = OFF;
+  float setpoint = 64.0;
+  float hysteresis = 0.2;
+  unsigned long antiCycle = 300000;
+} myConfig[2];
 
-// temperatures
-struct temperatures {
-  float internal = 0.0;
-  float external = 0.0;
-} myTemperatures;
-
-// state
-struct state {
-  unsigned long sensorsRequestEnd = 0;
-  int activePin = 0;
-  int lastPin = 0;
-  unsigned long activeEnd = 0;
-  unsigned long lastEnd = 0;
-} myState;
+// fermenter state
+struct fermenter {
+  float temperature = 0.0;
+  unsigned long antiCycle = 0;
+  unsigned long endChill = 0;
+} myFermenter[2];
 
 // buffer for serial communication
 #define BUFFER_SIZE 64
@@ -84,20 +73,19 @@ void setupSerial() {
 }
 
 void setupSensors() {
-  sensors[0].begin();
-  sensors[0].setWaitForConversion(WAIT_FOR_CONVERSION);
-  sensors[0].setResolution(RESOLUTION);
-  sensors[1].begin();
-  sensors[1].setWaitForConversion(WAIT_FOR_CONVERSION);
-  sensors[1].setResolution(RESOLUTION);
+  for (int i=0 ; i<2 ; i++) {
+    sensors[i].begin();
+    sensors[i].setWaitForConversion(WAIT_FOR_CONVERSION);
+    sensors[i].setResolution(RESOLUTION);
+  }
   requestTemperatures();
 }
 
 void setupPins() {
-  pinMode(PIN_CHILL, OUTPUT);
-  offPin(PIN_CHILL);
-  pinMode(PIN_HEAT, OUTPUT);
-  offPin(PIN_HEAT);
+  for (int i=0 ; i<2 ; i++) {
+    pinMode(PIN_CHILL[i], OUTPUT);
+    offPin(PIN_CHILL[i]);
+  }
 }
 
 void setupConfig() {
@@ -144,6 +132,7 @@ void parseBuffer() {
   char * b = myBuffer.buffer;
   char * word;
   char * cmd = NULL;
+  char * fermenter = NULL;
   char * param = NULL;
   int count = 0;
   while ((word = strtok_r(b,",",&b)) != NULL) {
@@ -152,6 +141,9 @@ void parseBuffer() {
         cmd = word;
         break;
       case 1:
+        fermenter = word;
+        break;
+      case 2:
         param = word;
         break;
       default:
@@ -160,7 +152,7 @@ void parseBuffer() {
     }
     count++;
   }
-  runCommand(cmd, param);
+  runCommand(cmd, fermenter, param);
 }
 
 void resetBuffer() {
@@ -173,7 +165,7 @@ void resetBuffer() {
   myBuffer.overflow = false;
 }
 
-void runCommand(char * cmd, char * param) {
+void runCommand(char * cmd, char * fermenter, char * param) {
   if (strcmp(cmd, "getVersion") == 0) {
     Serial.println(myDevice.version);
   } else if (strcmp(cmd, "getType") == 0) {
@@ -181,214 +173,167 @@ void runCommand(char * cmd, char * param) {
   } else if (strcmp(cmd, "getSN") == 0) {
     Serial.println(myDevice.sn);
   } else if (strcmp(cmd, "getMode") == 0) {
-    Serial.println(myConfig.mode);
+    Serial.println(myConfig[atoi(fermenter)].mode);
   } else if (strcmp(cmd, "getSetpoint") == 0) {
-    Serial.println(myConfig.setpoint);
+    Serial.println(myConfig[atoi(fermenter)].setpoint);
   } else if (strcmp(cmd, "getHysteresis") == 0) {
-    Serial.println(myConfig.hysteresis);
+    Serial.println(myConfig[atoi(fermenter)].hysteresis);
   } else if (strcmp(cmd, "getAntiCycle") == 0) {
-    Serial.println(myConfig.antiCycle);
-  } else if (strcmp(cmd, "getAntiFight") == 0) {
-    Serial.println(myConfig.antiFight);
-  } else if (strcmp(cmd, "getInternalTemperature") == 0) {
-    Serial.println(myTemperatures.internal,4);
-  } else if (strcmp(cmd, "getExternalTemperature") == 0) {
-    Serial.println(myTemperatures.external,4);
+    Serial.println(myConfig[atoi(fermenter)].antiCycle);
+  } else if (strcmp(cmd, "getTemperature") == 0) {
+    Serial.println(myFermenter[atoi(fermenter)].temperature,4);
   } else if (strcmp(cmd, "setMode") == 0) {
-    setMode(atoi(param));
+    setMode(atoi(fermenter), atoi(param));
   } else if (strcmp(cmd, "setSetpoint") == 0) {
-    setSetpoint(atof(param));
+    setSetpoint(atoi(fermenter), atof(param));
   } else if (strcmp(cmd, "setHysteresis") == 0) {
-    setHysteresis(atof(param));
+    setHysteresis(atoi(fermenter), atof(param));
   } else if (strcmp(cmd, "setAntiCycle") == 0) {
-    setAntiCycle(atol(param));
-  } else if (strcmp(cmd, "setAntiFight") == 0) {
-    setAntiFight(atol(param));
+    setAntiCycle(atoi(fermenter), atol(param));
   } else {
     Serial.println("unknown command");
   }
 }
 
-void setMode(int mode) {
+void setMode(int fermenter, int mode) {
   if (mode == OFF) {
-    myConfig.mode = OFF;
-    resetPins();
+    myConfig[fermenter].mode = OFF;
+    saveConfig();
+    resetFermenter(fermenter);
     Serial.println("set");
   } else if (mode == ON) {
-    myConfig.mode = ON;
+    myConfig[fermenter].mode = ON;
+    saveConfig();
+    resetFermenter(fermenter);
     Serial.println("set");
   } else {
     Serial.println("unknown mode");
   }
-  saveConfig();
 }
 
-void setSetpoint(float setpoint) {
+void setSetpoint(int fermenter, float setpoint) {
   if (setpoint >= 32.0 && setpoint <= 212.0) {
-    myConfig.setpoint = setpoint;
+    myConfig[fermenter].setpoint = setpoint;
     saveConfig();
-    resetPins();
+    resetFermenter(fermenter);
     Serial.println("set");
   } else {
     Serial.println("out of range (32 to 212)");
   }
 }
 
-void setHysteresis(float hysteresis) {
+void setHysteresis(int fermenter, float hysteresis) {
   if (hysteresis >= 0 && hysteresis <= 5) {
-    myConfig.hysteresis = hysteresis;
+    myConfig[fermenter].hysteresis = hysteresis;
     saveConfig();
-    resetPins();
+    resetFermenter(fermenter);
     Serial.println("set");
   } else {
     Serial.println("out of range (0 to 5)");
   }
 }
 
-void setAntiCycle(unsigned long antiCycle) {
+void setAntiCycle(int fermenter, unsigned long antiCycle) {
   if (antiCycle >= 0 && antiCycle <= 3600000) {
-    myConfig.antiCycle = antiCycle;
+    myConfig[fermenter].antiCycle = antiCycle;
     saveConfig();
-    resetPins();
+    resetFermenter(fermenter);
     Serial.println("set");
   } else {
     Serial.println("out of range (0 to 3600000)");
   }
 }
-
-void setAntiFight(unsigned long antiFight) {
-  if (antiFight >= 0 && antiFight <= 3600000) {
-    myConfig.antiFight = antiFight;
-    saveConfig();
-    resetPins();
-    Serial.println("set");
-  } else {
-    Serial.println("out of range (0 to 3600000)");
-  }
-}
-
-void resetPins() {
-  if (isActivePin()) {
-    offPin(myState.activePin);
-  }
-  myState.activePin = 0;
-  myState.activeEnd = 0;
-  myState.lastPin = 0;
-  myState.lastEnd = 0;
-}
-
 
 void loopSensors() {
-  if (millis() >= myState.sensorsRequestEnd) {
+  if (millis() >= sensorsRequestEnd) {
     getTemperatures();
     requestTemperatures();
   }
 }
 
 void requestTemperatures() {
-  sensors[0].requestTemperatures();
-  sensors[1].requestTemperatures();
-  myState.sensorsRequestEnd = millis() + SENSOR_REQUEST_DELAY;
+  for (int i=0; i<2 ; i++) {
+    sensors[i].requestTemperatures();
+  }
+  sensorsRequestEnd = millis() + SENSOR_REQUEST_DELAY;
 }
 
 void getTemperatures() {
-  myTemperatures.external = sensors[0].getTempFByIndex(0);
-  myTemperatures.internal = sensors[1].getTempFByIndex(0);
-}
-
-// is the mode ON?
-boolean isModeOn() {
-  return myConfig.mode == ON;
-}
-
-// is there an active pin?
-boolean isActivePin() {
-  return myState.activePin != 0;
-}
-
-// is it chilling?
-boolean isChilling() {
-  return myState.activePin == PIN_CHILL;
-}
-
-// is it heating?
-boolean isHeating() {
-  return myState.activePin == PIN_HEAT;
+  for (int i=0 ; i<2 ; i++) {
+    myFermenter[i].temperature = sensors[i].getTempFByIndex(0);
+  }
 }
 
 // are the sensors reporting reasonable data?
 boolean isSensorData() {
-  return myTemperatures.internal > 32 && myTemperatures.external > 32;
+  for (int i=0 ; i<2 ; i++) {
+    if (myFermenter[i].temperature < 32) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// is the mode ON?
+boolean isModeOn(int fermenter) {
+  return myConfig[fermenter].mode == ON;
+}
+
+// is it chilling?
+boolean isChilling(int fermenter) {
+  return myFermenter[fermenter].endChill != 0;
 }
 
 // is chilling required?
-boolean needsChill() {
-  return myTemperatures.internal - myConfig.setpoint > myConfig.hysteresis;
-}
-
-// is heating required?
-boolean needsHeat() {
-  return myConfig.setpoint - myTemperatures.internal > myConfig.hysteresis;
-}
-
-// is heat/chill fighting?
-boolean isFighting(int pin) {
-  return myState.lastPin != 0 && myState.lastPin != pin && millis() < myState.lastEnd + myConfig.antiFight;
+boolean needsChill(int fermenter) {
+  return myFermenter[fermenter].temperature - myConfig[fermenter].setpoint > myConfig[fermenter].hysteresis;
 }
 
 // is chilling delayed?
-boolean isChillingDelayed() {
-  return myState.lastPin != 0 && millis() <= myState.lastEnd + myConfig.antiCycle;
+boolean isChillingDelayed(int fermenter) {
+  return millis() <= myFermenter[fermenter].antiCycle;
 }
 
 // is chill cycle complete?
-boolean isChillingComplete() {
-  return myTemperatures.internal - myConfig.setpoint < 1 && millis() >= myState.activeEnd;
+boolean isChillingComplete(int fermenter) {
+  return myFermenter[fermenter].temperature - myConfig[fermenter].setpoint < 1 && millis() >= myFermenter[fermenter].endChill;
 }
 
-// is heat cycle hot?
-boolean isHeatingHot() {
-  return myTemperatures.external - myConfig.setpoint > 0.5;
-}
-
-// is heat cycle cool?
-boolean isHeatingCool() {
-  return myTemperatures.external - myConfig.setpoint < 0;
-}
-
-void loopFermenter() {
-  if (!isSensorData()) {
-    resetPins();
-    return;
+// reset fermenter state and turn off pin
+void resetFermenter(int fermenter) {
+  if (myFermenter[fermenter].endChill != 0) {
+    offPin(PIN_CHILL[fermenter]);
   }
-  if (isModeOn()) {
-    if (isChilling()) {
-      if (!needsChill() || isChillingComplete()) {
-        offPin(PIN_CHILL);
+  myFermenter[fermenter].endChill = 0;
+  myFermenter[fermenter].antiCycle = millis() + 1000; //allow 1 second for other changes
+}
+
+// fermenter loop
+void loopFermenter() {
+  for (int i=0 ; i<2 ; i++) {
+    if (!isSensorData()) {
+      resetFermenter(i);
+      return;
+    }
+    if (isModeOn(i)) {
+      if (isChilling(i)) {
+        if (!needsChill(i) || isChillingComplete(i)) {
+          offPin(PIN_CHILL[i]);
+          myFermenter[i].endChill = 0;
+          myFermenter[i].antiCycle = millis() + myConfig[i].antiCycle;
+        }
+      } else if (needsChill(i) && !isChillingDelayed(i)) {
+        onPin(PIN_CHILL[i]);
+        myFermenter[i].endChill = millis() + ((myFermenter[i].temperature - myConfig[i].setpoint) / 0.1 ) * 5000;
       }
-    } else if (isHeating()) {
-      if (!needsHeat() || isHeatingHot()) {
-        offPin(PIN_HEAT);
-      }
-    } else if (needsChill() && !isFighting(PIN_CHILL) && !isChillingDelayed()) {
-      onPin(PIN_CHILL);
-      // chill 5s for every 0.1s off setpoint
-      myState.activeEnd = millis() + (((myTemperatures.internal - myConfig.setpoint) / 0.1 ) * 5000);
-    } else if (needsHeat() && isHeatingCool() && !isFighting(PIN_HEAT)) {
-      onPin(PIN_HEAT);
     }
   }
 }
 
 void offPin(int pin) {
   digitalWrite(pin, HIGH);
-  myState.activePin = 0;
-  myState.activeEnd = 0;
-  myState.lastEnd = millis();
 }
 
 void onPin(int pin) {
   digitalWrite(pin, LOW);
-  myState.activePin = pin;
-  myState.lastPin = pin;
 }
