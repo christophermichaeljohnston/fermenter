@@ -325,6 +325,8 @@ void loopFermenter() {
       } else if (needsChill(i) && !isChillingDelayed(i)) {
         onPin(PIN_CHILL[i]);
         myFermenter[i].endChill = millis() + ((myFermenter[i].temperature - myConfig[i].setpoint) / 0.1 ) * 5000;
+      } else {
+        offPin(PIN_CHILL[i]);
       }
     }
   }
