@@ -291,9 +291,10 @@ void requestTemperatures() {
   myState.sensorsRequestEnd = millis() + SENSOR_REQUEST_DELAY;
 }
 
+// get current temperatures and check for valid data
 void getTemperatures() {
-  myTemperatures.external = sensors[0].getTempFByIndex(0);
-  myTemperatures.internal = sensors[1].getTempFByIndex(0);
+  myTemperatures.internal = sensors[0].getTempFByIndex(0);
+  myTemperatures.external = sensors[1].getTempFByIndex(0);
 }
 
 // is the mode ON?
@@ -365,10 +366,12 @@ void loopFermenter() {
     if (isChilling()) {
       if (!needsChill() || isChillingComplete()) {
         offPin(PIN_CHILL);
+        myState.lastEnd = millis();
       }
     } else if (isHeating()) {
       if (!needsHeat() || isHeatingHot()) {
         offPin(PIN_HEAT);
+        myState.lastEnd = millis();
       }
     } else if (needsChill() && !isFighting(PIN_CHILL) && !isChillingDelayed()) {
       onPin(PIN_CHILL);
@@ -376,6 +379,9 @@ void loopFermenter() {
       myState.activeEnd = millis() + (((myTemperatures.internal - myConfig.setpoint) / 0.1 ) * 5000);
     } else if (needsHeat() && isHeatingCool() && !isFighting(PIN_HEAT)) {
       onPin(PIN_HEAT);
+    } else {
+      offPin(PIN_CHILL);
+      offPin(PIN_HEAT);
     }
   }
 }
@@ -384,7 +390,6 @@ void offPin(int pin) {
   digitalWrite(pin, HIGH);
   myState.activePin = 0;
   myState.activeEnd = 0;
-  myState.lastEnd = millis();
 }
 
 void onPin(int pin) {
